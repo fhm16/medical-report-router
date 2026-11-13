@@ -119,4 +119,4 @@ The prompt tells the model to judge by the numeric value against the reference r
 
 License: not added yet.
 Built by [fhm16](https://github.com/fhm16). 
-Contact: ferdoushasanmaruf@gmail.com
+Email: ferdoushasanmaruf@gmail.com
