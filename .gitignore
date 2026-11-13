@@ -1,0 +1,22 @@
+# Secrets
+.env
+*.env
+!.env.example
+
+# n8n / local data
+.n8n/
+n8n_data/
+
+# Real data safety net
+data/real/
+*.real.pdf
+
+# Large media (host on YouTube/Loom instead)
+*.mp4
+*.mov
+*.mkv
+
+# OS / editor
+.DS_Store
+Thumbs.db
+node_modules/
