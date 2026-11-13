@@ -20,7 +20,7 @@ In small diagnostic centers, lab reports often arrive as PDFs and are checked by
 
 ## Who it's for
 
-Small diagnostic centers and clinics that receive lab results as PDFs. [FILL: add a specific target user only if you have their permission, otherwise delete this line]
+Small diagnostic centers and clinics that receive lab results as PDFs.
 
 ## Solution overview
 
@@ -73,7 +73,7 @@ The prompt tells the model to judge by the numeric value against the reference r
 | Metric | Result | How measured | Data type |
 |---|---|---|---|
 | End-to-end run (PDF → message) | Completed on 2 sample reports in `data/sample/` | Manual test, screen recording (see demo) | Synthetic |
-| Branches exercised | [FILL: Telegram / WhatsApp / both] | Screen recording | Synthetic |
+| Branches exercised | Both paths ran: Telegram doctor alert and WhatsApp patient message | Screen recording | Synthetic |
 | Time per report | Not measured yet | n/a | n/a |
 | Accuracy / missed abnormal values | Not measured yet | Planned: 30–50 labeled synthetic reports | n/a |
 | Valid-JSON rate of the LLM output | Not measured yet | Planned | n/a |
@@ -118,4 +118,5 @@ The prompt tells the model to judge by the numeric value against the reference r
 ## License & contact
 
 License: not added yet.
-Built by [fhm16](https://github.com/fhm16). [FILL: email or LinkedIn, optional]
+Built by [fhm16](https://github.com/fhm16). 
+Contact: ferdoushasanmaruf@gmail.com
