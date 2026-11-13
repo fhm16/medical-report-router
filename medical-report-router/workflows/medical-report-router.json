@@ -1,0 +1,351 @@
+{
+  "name": "Diagnostic Center Report Delivery & Alert Router",
+  "nodes": [
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.path }}",
+        "options": {}
+      },
+      "name": "Read/Write Files from Disk",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        144,
+        16
+      ],
+      "id": "346e364b-8162-4feb-887c-7d2a5edd67dc"
+    },
+    {
+      "parameters": {
+        "triggerOn": "folder",
+        "path": "/data/reports",
+        "events": [
+          "add"
+        ],
+        "options": {
+          "usePolling": true
+        }
+      },
+      "type": "n8n-nodes-base.localFileTrigger",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        16
+      ],
+      "id": "87f3a94e-09a8-42c6-8125-df553014a153",
+      "name": "Local File Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloud.llamaindex.ai/api/v2/parse/upload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR LLAMA API"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "configuration",
+              "value": "{\"tier\": \"cost_effective\", \"version\": \"latest\"}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "LlamaParse Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        368,
+        16
+      ],
+      "id": "f08dc085-925c-460e-9a6f-34569ac59a58"
+    },
+    {
+      "parameters": {
+        "amount": 8,
+        "unit": "seconds"
+      },
+      "name": "Wait for OCR",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        592,
+        16
+      ],
+      "id": "043bbf37-0d62-4640-9a07-0cf960485406",
+      "webhookId": "02c3089f-9e13-4b14-9c69-3b6067a29eb8"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.cloud.llamaindex.ai/api/v2/parse/{{ $json.id }}?expand=markdown",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR LLAMA API"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "LlamaParse Get Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        816,
+        16
+      ],
+      "id": "1bae6946-4c62-4ab1-8855-8af1bd7fd6c2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"llama3.1:8b\", stream: false, format: \"json\", prompt: \"You are a highly cautious administrative medical report router prioritizing patient safety above all else. Extract patient details and lab test values from the report below.\\n\\nCRITICAL ROUTING RULES:\\n1. STRICT NUMBERS: If ANY numeric test result is even slightly outside the provided reference range, or flagged as 'HIGH', 'LOW', or 'ABNORMAL', you MUST set \\\"is_critical\\\": true.\\n2. IGNORE HUMAN COMMENTS: Ignore subjective comments like 'mildly elevated', 'normal for age', or 'borderline'. Rely ONLY on the raw numerical values.\\n3. MISSING REFERENCE RANGES: If a test is missing its reference range on the report, evaluate the value against standard global medical reference ranges. If it is even slightly abnormal by standard criteria, set \\\"is_critical\\\": true.\\n4. ZERO TOLERANCE FOR RISK: False alarms are acceptable; missing a critical patient is dangerous. When in doubt, or if any value is slightly off, set \\\"is_critical\\\": true. Set \\\"is_critical\\\": false ONLY if 100% of all tested elements are perfectly normal.\\n\\nYou MUST respond ONLY with valid JSON matching this exact structure: {\\\"patient_name\\\": \\\"Name\\\", \\\"patient_phone\\\": \\\"Contact Number\\\", \\\"is_critical\\\": true, \\\"abnormal_tests\\\": [\\\"Test Name: Result (Ref: Range) - Reason\\\"], \\\"summary_en\\\": \\\"Professional English administrative summary stating which tests are abnormal and advising prompt medical consultation. Do not give medical diagnosis.\\\"}.\\n\\nReport Text:\\n\" + ($json.markdown && $json.markdown.pages ? $json.markdown.pages.map(p => p.markdown).join(\"\\n\\n\") : \"No text found\") }) }}",
+        "options": {}
+      },
+      "name": "Ollama Analyze Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        16
+      ],
+      "id": "8f94e11c-9338-4a62-b7c0-69e4d1fe3f85"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.response;\nconst parsed = JSON.parse(raw);\nreturn [{ json: parsed }];"
+      },
+      "name": "Parse AI JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        16
+      ],
+      "id": "00e22eff-51cb-4eac-b75f-de1bd995fd5c"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "critical-check-1",
+              "leftValue": "={{ $json.is_critical }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Check Critical Value",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        16
+      ],
+      "id": "8d3d2aac-5b5e-4384-bdbd-abf9a730981b"
+    },
+    {
+      "parameters": {
+        "chatId": "8353926076",
+        "text": "=🚨 *CRITICAL MEDICAL REPORT ALERT* 🚨\n\n*Patient Name:* {{ $json.patient_name || 'N/A' }}\n*Contact No:* {{ $json.patient_phone || 'N/A' }}\n\n*Abnormal Findings:* \n- {{ ($json.abnormal_tests || []).join('\\n- ') }}\n\n*Administrative Summary:* \n{{ $json.summary_en }}\n\n_(System-generated administrative alert)_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Doctor Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1712,
+        -80
+      ],
+      "id": "6eefec39-411b-40cc-b3bd-86cd20385f87",
+      "webhookId": "40919861-33e8-4d4f-8414-47e88f5d50a7",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR TELEGRAM ID",
+          "name": "YOUR TELEGRAM ACCOUNT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3001/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "YOUR WAHA API"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: \"default\", chatId: (($json.patient_phone || \"88019000000\").toString().replace(/[^0-9]/g, \"\").replace(/^01/, \"8801\")) + \"@c.us\", text: \"🏥 *Diagnostic Report Ready*\\n\\nDear *\" + ($json.patient_name || \"Valued Patient\") + \"*,\\nYour diagnostic laboratory report has been processed.\\n\\n*Summary:*\\n\" + ($json.summary_en || \"All tested parameters are within normal limits.\") + \"\\n\\n_Thank you for choosing our diagnostic services._\" }) }}",
+        "options": {}
+      },
+      "name": "Patient WhatsApp Delivery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1712,
+        112
+      ],
+      "id": "85e97005-fe75-4d44-bea7-1223b65db17a"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Local File Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LlamaParse Upload": {
+      "main": [
+        [
+          {
+            "node": "Wait for OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for OCR": {
+      "main": [
+        [
+          {
+            "node": "LlamaParse Get Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "LlamaParse Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LlamaParse Get Text": {
+      "main": [
+        [
+          {
+            "node": "Ollama Analyze Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Analyze Report": {
+      "main": [
+        [
+          {
+            "node": "Parse AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Critical Value": {
+      "main": [
+        [
+          {
+            "node": "Doctor Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Patient WhatsApp Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI JSON": {
+      "main": [
+        [
+          {
+            "node": "Check Critical Value",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "c18d99cb-dadf-40c7-a8d2-37345e4c7c6e",
+  "meta": {
+    "instanceId": "1c2ede38d4ce93315f644ff839e23248e3ffa776614986f5c777ae516f70d192"
+  },
+  "nodeGroups": [],
+  "id": "CB6VrMZitfC7Gzrg",
+  "tags": []
+}
